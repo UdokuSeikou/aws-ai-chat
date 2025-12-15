@@ -15,7 +15,7 @@ applications:
           artifacts:
               baseDirectory: dist
               files:
-                  - '/*'
+                  - '**/*'
           cache:
               paths:
                   - .npm//*
