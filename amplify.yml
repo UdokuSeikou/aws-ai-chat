@@ -13,7 +13,7 @@ applications:
                   commands:
                       - npm run build
                   artifacts:
-                      baseDirectory: dict
+                      baseDirectory: dist
                       files:
                           - '/*'
                   cache:
