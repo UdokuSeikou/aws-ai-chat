@@ -1,0 +1,7 @@
+npm test
+
+# git-secretsによるシークレットのチェック
+git secrets --pre_commit_hook -- "$@"
+
+# lint-stagedによるリントとフォーマットを実行
+npx lint-staged
