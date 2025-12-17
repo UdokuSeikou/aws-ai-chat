@@ -1,3 +1,4 @@
+#!/usr/bin/env sh
 npm test
 
 # git-secretsによるシークレットのチェック
