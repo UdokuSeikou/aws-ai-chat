@@ -2,8 +2,12 @@ import ChatInput from '../components/ui/ChatInput';
 import { useNavigate } from 'react-router';
 import { SAMPLE_CONVERSATIONS } from '../sampleDate';
 import { createChatTitle } from '../utils';
+import { useAuthenticator } from '@aws-amplify/ui-react';
 
 export default function NewChat() {
+	const { user } = useAuthenticator((context) => [context.user]);
+	const userName = user?.signInDetails?.loginId?.split('@')[0] ?? '';
+
 	const navigate = useNavigate();
 	const sendMessage = (message: string, model: string) => {
 		const conversationId = self.crypto.randomUUID();
@@ -34,7 +38,7 @@ export default function NewChat() {
 		<div className="flex h-screen items-center justify-center">
 			<div className="flex w-full max-w-xl flex-col gap-2">
 				<h1 className="text-center text-3xl font-bold">
-					test-userさん
+					{userName}さん
 				</h1>
 				<ChatInput sendMessage={sendMessage} />
 			</div>
