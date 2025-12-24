@@ -3,12 +3,14 @@ import {
 	BedrockRuntimeClient,
 	ConverseCommand,
 	ConverseCommandInput,
+	Message,
 } from '@aws-sdk/client-bedrock-runtime';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
 	DynamoDBDocumentClient,
 	PutCommand,
 	UpdateCommand,
+	QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
 
 // DynamoDBのテーブル名を環境変数から取得
@@ -19,6 +21,7 @@ const MAX_TITLE_LENGTH = 20;
 const SYSTEM_PROMPT = 'You are the best teacher in the world.';
 const GENERIC_ERROR_MESSAGE =
 	'申し訳ございません。サーバーで予期せぬエラーが発生しました';
+const MAX_CONVERSATION_HISTORY = 20;
 
 const bedRockClient = new BedrockRuntimeClient();
 const dynamoClient = new DynamoDBClient();
@@ -56,8 +59,18 @@ export const handler: Schema['BedrockChat']['functionHandler'] = async (
 			await saveMessage(conversationId, 'user', prompt, owner);
 		}
 
+		// 会話履歴が存在する場合、履歴を呼び出す
+		let conversationHistory: Message[] = [];
+		if (conversationId) {
+			conversationHistory = await getConversationHistory(conversationId);
+		}
+
 		// Bedrockからレスポンスを取得
-		const assistantResponse = await invokeBedrockModel(prompt, modelId);
+		const assistantResponse = await invokeBedrockModel(
+			prompt,
+			modelId,
+			conversationHistory,
+		);
 
 		// アシスタントの返答を保存
 		if (conversationId) {
@@ -76,11 +89,20 @@ export const handler: Schema['BedrockChat']['functionHandler'] = async (
 	}
 };
 
-// bedrockAPIに取得したプロンプトとmodelIdを渡してモデルを呼び出す関数
+// bedrockAPIに取得したプロンプトとmodelIdと会話履歴を渡してモデルを呼び出す関数
 async function invokeBedrockModel(
 	prompt: string,
 	modelId: string,
+	conversationHistory: Message[] = [],
 ): Promise<string> {
+	const messages = [
+		...conversationHistory,
+		{
+			role: 'user' as const,
+			content: [{ text: prompt }],
+		},
+	];
+
 	const input: ConverseCommandInput = {
 		modelId: modelId,
 		system: [
@@ -88,16 +110,7 @@ async function invokeBedrockModel(
 				text: SYSTEM_PROMPT,
 			},
 		],
-		messages: [
-			{
-				role: 'user',
-				content: [
-					{
-						text: prompt,
-					},
-				],
-			},
-		],
+		messages: messages,
 		inferenceConfig: {
 			maxTokens: 150,
 			temperature: 0.8,
@@ -187,4 +200,38 @@ async function saveMessage(
 function getISOString(): string {
 	const timestamp = new Date().toISOString();
 	return timestamp;
+}
+
+// DynamoDBから会話履歴を取得する
+/*
+@param 		conversationId -メッセージを取得する会話のID
+@returns	{Promise<Message[]>} -Bedrock用にフォーマットされたメッセージの配列
+*/
+async function getConversationHistory(
+	conversationId: string,
+): Promise<Message[]> {
+	try {
+		const queryCommand = new QueryCommand({
+			TableName: MESSAGE_TABLE,
+			KeyConditionExpression: 'conversationId = :conversationId',
+			ExpressionAttributeValues: {
+				':conversationId': conversationId,
+			},
+			ScanIndexForward: false,
+			Limit: MAX_CONVERSATION_HISTORY,
+		});
+		const result = await docClient.send(queryCommand);
+
+		if (!result.Items) return [];
+
+		const messages = result.Items.map((item) => ({
+			role: item.sender,
+			content: [{ text: item.content || '' }],
+		})).reverse();
+
+		return messages;
+	} catch (e) {
+		console.error(`会話履歴の取得に失敗しました: ${e}`);
+		return [];
+	}
 }

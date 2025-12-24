@@ -31,7 +31,7 @@ backend.bedrockChatFunction.resources.lambda.addToRolePolicy(
 backend.bedrockChatFunction.resources.lambda.addToRolePolicy(
 	new PolicyStatement({
 		effect: Effect.ALLOW,
-		actions: ['dynamodb:PutItem', 'dynamodb:UpdateItem'],
+		actions: ['dynamodb:PutItem', 'dynamodb:UpdateItem', 'dynamodb:Query'],
 		resources: [
 			backend.data.resources.tables['Conversation'].tableArn,
 			backend.data.resources.tables['Message'].tableArn,
