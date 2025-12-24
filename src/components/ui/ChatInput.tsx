@@ -4,11 +4,13 @@ import { type FormEvent, useState } from 'react';
 interface ChatInputProps {
 	sendMessage: (message: string, model: string) => void;
 	initialModel?: string;
+	disable?: boolean;
 }
 
 export default function ChatInput({
 	sendMessage,
 	initialModel,
+	disable,
 }: ChatInputProps) {
 	const handleSubmit = (event: FormEvent) => {
 		event.preventDefault();
@@ -81,7 +83,7 @@ export default function ChatInput({
 					</div>
 					<button
 						type="submit"
-						disabled={message.trim() === ''}
+						disabled={disable || message.trim() === ''}
 						className="flex items-center justify-center rounded-md bg-blue-600 p-2 text-white hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-blue-600"
 					>
 						送信

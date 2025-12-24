@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import '@aws-amplify/ui-react/styles.css';
+@import '@tailwindcss/typography';
 
 @theme {
 	--color-cream-100: #f5f0e5;
