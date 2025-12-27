@@ -71,3 +71,6 @@ export default defineConfig([
   },
 ])
 ```
+
+# CI/CD
+このプロジェクトではGitHub Actionsを使用しています。
