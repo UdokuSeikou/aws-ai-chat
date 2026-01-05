@@ -39,27 +39,30 @@ export const handler: Schema['BedrockChat']['functionHandler'] = async (
 			? event.identity.claims
 			: null;
 
+	// デバッグ用ログ
+	console.log('event.identity:', JSON.stringify(event.identity, null, 2));
+	console.log('claims:', JSON.stringify(claims, null, 2));
+
 	// ユーザーのIDと名前を取得
 	// AppSyncの認証フィルターに使用
 	const sub = claims?.sub;
-	const userName = claims?.userName ?? claims?.['cognito:username'];
+	// usernameはclaimsの中にある
+	const userName = claims?.username;
+
+	console.log('sub:', sub);
+	console.log('userName:', userName);
 
 	// AppSyncの認証オーナーに合わせてownerを設定
 	const owner = sub && userName ? `${sub}::${userName}` : 'unknown-user';
+	console.log('owner:', owner);
 
 	try {
 		const title =
 			prompt.length > MAX_TITLE_LENGTH
 				? prompt.substring(0, MAX_TITLE_LENGTH)
 				: prompt;
-		if (conversationId) {
-			// 会話データを更新または保存
-			await saveConversation(conversationId, title, owner);
-			// ユーザーのメッセージを保存
-			await saveMessage(conversationId, 'user', prompt, owner);
-		}
 
-		// 会話履歴が存在する場合、履歴を呼び出す
+		// 会話履歴を先に取得（現在のメッセージを保存する前に）
 		let conversationHistory: Message[] = [];
 		if (conversationId) {
 			conversationHistory = await getConversationHistory(conversationId);
@@ -72,8 +75,13 @@ export const handler: Schema['BedrockChat']['functionHandler'] = async (
 			conversationHistory,
 		);
 
-		// アシスタントの返答を保存
+		// 会話データとメッセージを保存（Bedrock呼び出し後）
 		if (conversationId) {
+			// 会話データを更新または保存
+			await saveConversation(conversationId, title, owner);
+			// ユーザーのメッセージを保存
+			await saveMessage(conversationId, 'user', prompt, owner);
+			// アシスタントの返答を保存
 			await saveMessage(
 				conversationId,
 				'assistant',
@@ -138,8 +146,8 @@ async function saveConversation(
 			UpdateExpression: `
 				SET #title = if_not_exists(#title, :title),
 					#createdAt = if_not_exists(#createdAt, :timestamp),
-					#updateAt = :timestamp
-					#owner =if_not_exists(#owner, :owner),
+					#updateAt = :timestamp,
+					#owner = if_not_exists(#owner, :owner),
 					#typename = if_not_exists(#typename, :typename)
 				`,
 			ExpressionAttributeNames: {

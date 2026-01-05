@@ -91,10 +91,12 @@ export default function ChatConversation() {
 	useEffect(() => {
 		if (!conversationId) return;
 
+		// 初回レンダリング時のみ実行
+		if (!initRenderRef.current) return;
+		initRenderRef.current = false;
+
 		if (initChatDetail) {
-			if (!initRenderRef.current) return;
-			initRenderRef.current = false;
-			const { message, model } = initChatDetail;
+			const { message } = initChatDetail;
 			setConversation({
 				id: conversationId,
 				title: createChatTitle(message),
@@ -110,11 +112,17 @@ export default function ChatConversation() {
 				updatedAt: new Date(),
 			});
 			setIsLoadingConversation(false);
-			getAIResponse(message, model, true);
+			// conversationId 取得のたびにbedrockAPIへ新規メッセージの送信が行われてしまうため、無効化
+			// getAIResponse(message, model, true);
 		} else {
 			getConversation();
 		}
-	}, [conversationId, initChatDetail]);
+	}, [conversationId]);
+
+	// conversationIdが変わったらinitRenderRefをリセット
+	useEffect(() => {
+		initRenderRef.current = true;
+	}, [conversationId]);
 
 	// 最後の会話まで画面をスクロール
 	useEffect(() => {
