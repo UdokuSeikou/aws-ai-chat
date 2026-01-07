@@ -1,4 +1,5 @@
 import type { APIGatewayProxyHandler, APIGatewayProxyResult } from 'aws-lambda';
+import { randomUUID } from 'crypto';
 
 // ユーザーデータの型定義
 interface User {
@@ -52,7 +53,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
 
 			// 新規ユーザーを作成
 			const createdUser: User = {
-				id: self.crypto.randomUUID(),
+				id: randomUUID(),
 				name: newUser.name,
 				email: newUser.email,
 			};
